@@ -42,8 +42,9 @@ const RecommendGame = () => {
     setGames([]);
 
     try {
-      const terms = selectedTags.map(id => CATEGORIES.find(c => c.id === id)?.name.toLowerCase()).join(' ');
-      const url = `/api/search?q=${encodeURIComponent(terms)}&limit=30`;
+      const terms = selectedTags.map(id => CATEGORIES.find(c => c.id === id)?.term).filter(Boolean).join(' ');
+	  const finalQuery = terms || 'boardgame'; // ← mai vuoto
+      const url = `/api/search?q=${encodeURIComponent(finalQuery)}&limit=30`;
 
       const res = await fetch(url);
       const data = await res.json();
