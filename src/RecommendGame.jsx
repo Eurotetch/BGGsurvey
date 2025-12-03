@@ -1,18 +1,17 @@
 // src/RecommendGame.jsx
 import React, { useState } from 'react';
 
-// Categorie: UI in italiano, ricerca in inglese
 const CATEGORIES = [
-  { id: 'strategy', name: 'Strategia', icon: '♟️', term: 'strategy' },
-  { id: 'card', name: 'Giochi di Carte', icon: '🃏', term: 'card' },
-  { id: 'cooperative', name: 'Cooperativi', icon: '🤝', term: 'cooperative' },
-  { id: 'party', name: 'Giochi di Società', icon: '🎉', term: 'party' },
-  { id: 'family', name: 'Per Famiglie', icon: '👨‍👩‍👧‍👦', term: 'family' },
-  { id: 'abstract', name: 'Astratti', icon: '🌀', term: 'abstract' },
-  { id: 'deck', name: 'Deck Building', icon: '📦', term: 'deck building' },
-  { id: 'fantasy', name: 'Fantasy', icon: '🧙', term: 'fantasy' },
-  { id: 'scifi', name: 'Fantascienza', icon: '🚀', term: 'sci-fi' },
-  { id: 'horror', name: 'Horror', icon: '👻', term: 'horror' },
+  { id: 'strategy', name: 'Strategy', icon: '♟️' },
+  { id: 'card', name: 'Card Game', icon: '🃏' },
+  { id: 'cooperative', name: 'Cooperative', icon: '🤝' },
+  { id: 'party', name: 'Party Game', icon: '🎉' },
+  { id: 'family', name: 'Family', icon: '👨‍👩‍👧‍👦' },
+  { id: 'abstract', name: 'Abstract', icon: '🌀' },
+  { id: 'deck', name: 'Deck Building', icon: '📦' },
+  { id: 'fantasy', name: 'Fantasy', icon: '🧙' },
+  { id: 'scifi', name: 'Sci-Fi', icon: '🚀' },
+  { id: 'horror', name: 'Horror', icon: '👻' },
 ];
 
 const RecommendGame = () => {
@@ -33,67 +32,33 @@ const RecommendGame = () => {
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    if (selectedTags.length === 0) {
+      setError('Seleziona almeno una categoria');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setGames([]);
 
-    // Costruisci la query di ricerca
-    const terms = selectedTags.map(id => CATEGORIES.find(c => c.id === id)?.term).filter(Boolean).join(' ');
-    const finalQuery = terms || 'boardgame'; // fallback
-
     try {
-      // ✅ Questa è la riga corretta, con contesto
-      const res = await fetch(`/api/search?q=${encodeURIComponent(finalQuery)}&limit=30`);
-      
-      if (!res.ok) {
-        throw new Error('Risposta non valida dal server');
-      }
+      const terms = selectedTags.map(id => CATEGORIES.find(c => c.id === id)?.name.toLowerCase()).join(' ');
+      const url = `/api/search?q=${encodeURIComponent(terms)}&limit=30`;
 
+      const res = await fetch(url);
       const data = await res.json();
-      if (data.error) {
-        throw new Error(data.error);
-      }
 
-      // Estrai 3 giochi casuali
       const allGames = data.games || [];
-      const shuffled = [...allGames].sort(() => 0.5 - Math.random());
+      const validGames = allGames.filter(g => g.thumbnail && g.descriptionPreview);
+
+      const shuffled = [...validGames].sort(() => 0.5 - Math.random());
       setGames(shuffled.slice(0, 3));
     } catch (err) {
       console.error(err);
-      setError('Impossibile recuperare i giochi. Riprova tra qualche secondo.');
+      setError('Errore nella ricerca. Riprova tra qualche secondo.');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Renderizza i meeple per player count (1-10)
-  const renderMeeple = (game) => {
-    const allPlayers = Array.from({ length: 10 }, (_, i) => i + 1);
-    return (
-      <div style={{ display: 'flex', gap: '2px', marginTop: '6px' }}>
-        {allPlayers.map(num => {
-          let color = '#ffffff'; // bianco = non giocabile
-          if (game.playersBest.includes(num)) {
-            color = '#000000'; // nero = best
-          } else if (game.playersRecommended.includes(num)) {
-            color = '#aaaaaa'; // grigio = recommended
-          }
-          return (
-            <div
-              key={num}
-              style={{
-                width: '12px',
-                height: '12px',
-                borderRadius: '50%',
-                backgroundColor: color,
-                border: '1px solid #555'
-              }}
-              title={`${num} giocatori: ${game.playersBest.includes(num) ? 'Migliore' : game.playersRecommended.includes(num) ? 'Giocabile' : 'Non consigliato'}`}
-            />
-          );
-        })}
-      </div>
-    );
   };
 
   const SkeletonCard = () => (
@@ -102,8 +67,8 @@ const RecommendGame = () => {
       borderRadius: '8px',
       padding: '12px',
       width: '180px',
-      backgroundColor: '#000',
-      color: '#fff',
+      backgroundColor: '#121212',
+      color: '#FFFFFF',
       animation: 'pulse 1.5s infinite ease-in-out'
     }}>
       <div style={{ width: '100%', height: '120px', backgroundColor: '#222', borderRadius: '4px' }}></div>
@@ -116,17 +81,17 @@ const RecommendGame = () => {
       maxWidth: '800px',
       margin: '0 auto',
       padding: '20px',
-      backgroundColor: '#000',
-      color: '#fff',
+      backgroundColor: '#121212', // Sfondo scuro (non nero)
+      color: '#FFFFFF', // Testo bianco
       fontFamily: 'sans-serif'
     }}>
-      <h2 style={{ fontSize: '1.5rem', marginBottom: '8px' }}>🎲 Cosa giocare stasera?</h2>
-      <p style={{ marginBottom: '20px', color: '#ccc' }}>Seleziona le categorie che ti interessano.</p>
+      <h2 style={{ fontSize: '1.5rem', marginBottom: '8px', color: '#FFFFFF' }}>🎲 Trova il tuo prossimo gioco da tavolo</h2>
+      <p style={{ marginBottom: '20px', color: '#E0E0E0' }}>Seleziona le categorie che ti interessano.</p>
 
       <form onSubmit={onSubmit}>
         {selectedTags.length > 0 && (
           <div style={{ marginBottom: '16px' }}>
-            <strong>Categorie selezionate:</strong>
+            <strong style={{ color: '#FFFFFF' }}>Categorie selezionate:</strong>
             <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {selectedTags.map(id => {
                 const cat = CATEGORIES.find(c => c.id === id);
@@ -135,7 +100,7 @@ const RecommendGame = () => {
                     key={id}
                     style={{
                       backgroundColor: '#FCD34D',
-                      color: '#000',
+                      color: '#000000',
                       padding: '4px 8px',
                       borderRadius: '12px',
                       fontSize: '0.85rem',
@@ -153,7 +118,7 @@ const RecommendGame = () => {
                         border: 'none',
                         fontSize: '1rem',
                         cursor: 'pointer',
-                        color: '#000',
+                        color: '#000000',
                         fontWeight: 'bold'
                       }}
                     >
@@ -167,7 +132,7 @@ const RecommendGame = () => {
         )}
 
         <div style={{ marginBottom: '20px' }}>
-          <strong>Scegli una o più categorie:</strong>
+          <strong style={{ color: '#FFFFFF' }}>Scegli una o più categorie:</strong>
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
@@ -186,8 +151,8 @@ const RecommendGame = () => {
                     ? '2px solid #FCD34D'
                     : '1px solid #5A5245',
                   borderRadius: '8px',
-                  backgroundColor: selectedTags.includes(cat.id) ? '#FCD34D' : '#000',
-                  color: selectedTags.includes(cat.id) ? '#000' : '#fff',
+                  backgroundColor: selectedTags.includes(cat.id) ? '#FCD34D' : '#121212',
+                  color: selectedTags.includes(cat.id) ? '#000000' : '#FFFFFF',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -195,7 +160,8 @@ const RecommendGame = () => {
                   cursor: 'pointer',
                   fontSize: '0.8rem',
                   padding: '8px',
-                  textAlign: 'center'
+                  textAlign: 'center',
+                  transition: 'background-color 0.2s ease'
                 }}
               >
                 <div style={{ fontSize: '1.5rem', marginBottom: '4px' }}>{cat.icon}</div>
@@ -212,11 +178,12 @@ const RecommendGame = () => {
             width: '100%',
             padding: '10px',
             backgroundColor: isLoading ? '#5A5245' : '#FCD34D',
-            color: isLoading ? '#aaa' : '#000',
+            color: isLoading ? '#AAAAAA' : '#000000',
             border: 'none',
             borderRadius: '4px',
             cursor: isLoading ? 'not-allowed' : 'pointer',
-            fontWeight: 'bold'
+            fontWeight: 'bold',
+            transition: 'background-color 0.2s ease'
           }}
         >
           {isLoading ? 'Ricerca in corso...' : 'Trova 3 giochi'}
@@ -227,7 +194,7 @@ const RecommendGame = () => {
 
       {isLoading && (
         <div style={{ marginTop: '30px' }}>
-          <h3 style={{ marginBottom: '16px' }}>🕒 Ricerca in corso...</h3>
+          <h3 style={{ marginBottom: '16px', color: '#FFFFFF' }}>🕒 Ricerca in corso...</h3>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
             {[1, 2, 3].map(i => <SkeletonCard key={i} />)}
           </div>
@@ -236,7 +203,7 @@ const RecommendGame = () => {
 
       {games.length > 0 && (
         <div style={{ marginTop: '30px' }}>
-          <h3 style={{ marginBottom: '16px' }}>🎉 Ecco i tuoi 3 giochi consigliati:</h3>
+          <h3 style={{ marginBottom: '16px', color: '#FFFFFF' }}>🎉 Ecco i tuoi 3 giochi consigliati:</h3>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
             {games.map((game) => (
               <div
@@ -246,8 +213,8 @@ const RecommendGame = () => {
                   borderRadius: '8px',
                   padding: '12px',
                   width: '180px',
-                  backgroundColor: '#000',
-                  color: '#fff'
+                  backgroundColor: '#121212',
+                  color: '#FFFFFF'
                 }}
               >
                 {game.thumbnail ? (
@@ -260,7 +227,7 @@ const RecommendGame = () => {
                   <div style={{
                     width: '100%',
                     height: '120px',
-                    backgroundColor: '#111',
+                    backgroundColor: '#222',
                     borderRadius: '4px',
                     display: 'flex',
                     alignItems: 'center',
@@ -270,11 +237,10 @@ const RecommendGame = () => {
                     Immagine non disponibile
                   </div>
                 )}
-                <h4 style={{ fontSize: '1rem', margin: '8px 0', lineHeight: 1.3 }}>{game.name}</h4>
-                <p style={{ fontSize: '0.8rem', color: '#ddd' }}>
-                  {game.minPlayers}–{game.maxPlayers} giocatori • {game.playingTime} min
+                <h4 style={{ fontSize: '1rem', margin: '8px 0', lineHeight: 1.3, color: '#FFFFFF' }}>{game.name}</h4>
+                <p style={{ fontSize: '0.8rem', color: '#E0E0E0' }}>
+                  {game.minplayers}–{game.maxplayers} giocatori • {game.playingtime} min
                 </p>
-                {renderMeeple(game)}
                 <a
                   href={`https://boardgamegeek.com/boardgame/${game.id}`}
                   target="_blank"
