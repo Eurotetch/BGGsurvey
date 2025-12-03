@@ -1,0 +1,11 @@
+npm install react-hook-form
+Dipenenza per gestire pagine
+
+api/search.js
+Proxy che Parsa XML BGG, gestisce 202, restituisce JSON
+
+api/vercel.json
+Configurazione Vercel che abilita la funzione serverless
+
+npm install xml2js
+Dipendenza per leggere xml
