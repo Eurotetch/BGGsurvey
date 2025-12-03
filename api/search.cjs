@@ -1,5 +1,15 @@
 // api/search.cjs
 const { parseStringPromise } = require('xml2js');
+const fetch = require('node-fetch');
+
+let parseStringPromise;
+try {
+  const xml2js = require('xml2js');
+  parseStringPromise = xml2js.parseStringPromise;
+} catch (e) {
+  console.error('❌ xml2js not available:', e.message);
+  throw e;
+}
 
 module.exports = async (req, res) => {
   try {
