@@ -1,15 +1,5 @@
-// api/search.cjs
+// api/search.js
 const { parseStringPromise } = require('xml2js');
-const fetch = require('node-fetch');
-
-let parseStringPromise;
-try {
-  const xml2js = require('xml2js');
-  parseStringPromise = xml2js.parseStringPromise;
-} catch (e) {
-  console.error('❌ xml2js not available:', e.message);
-  throw e;
-}
 
 module.exports = async (req, res) => {
   try {
@@ -24,8 +14,8 @@ module.exports = async (req, res) => {
     let searchXml = '';
     while (attempts < 3) {
       const searchRes = await fetch(
-		  `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(q)}&type=boardgame`
-		);
+        `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(q)}&type=boardgame`
+      );
       console.log('BGG Search status:', searchRes.status);
       if (searchRes.status === 202) {
         await new Promise(r => setTimeout(r, 2000));
