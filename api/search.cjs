@@ -1,24 +1,25 @@
 // api/search.cjs
+const fetch = require('node-fetch');
+
 module.exports = async (req, res) => {
   try {
     const url = new URL(req.url, `https://${req.headers.host}`);
     const q = url.searchParams.get('q') || 'boardgame';
     const limit = Math.min(30, parseInt(url.searchParams.get('limit') || '10'));
 
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (RecommendGame; eurotetch@gmail.com)'
+    };
+
     // === 1. Cerca ID su BGG ===
 	// 👇 Usa User-Agent che ha fatto richiesta a Boardgamegeek di poter usare l'API. Vedi: https://boardgamegeek.com/wiki/page/BGG_XML_API2#
 	// Stato della richiesta qui: https://boardgamegeek.com/applications
-
     let attempts = 0;
     let searchXml = '';
     while (attempts < 3) {
       const searchRes = await fetch(
         `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(q)}&type=boardgame`,
-        {
-          headers: {
-            'User-Agent': 'RecommendGame/1.0 (eurotetch@gmail.com)'
-          }
-        }
+        { headers }
       );
       if (searchRes.status === 202) {
         await new Promise(r => setTimeout(r, 2000));
@@ -33,7 +34,7 @@ module.exports = async (req, res) => {
       throw new Error('No XML from BGG');
     }
 
-    // === Parse XML con regex semplice ===
+    // === Parse XML con regex ===
     const parseXml = (xml) => {
       const result = { items: [] };
       const itemMatches = xml.match(/<item id="(\d+)"[^>]*>/g) || [];
@@ -55,15 +56,10 @@ module.exports = async (req, res) => {
     // === 2. Recupera dettagli ===
     const detailsRes = await fetch(
       `https://boardgamegeek.com/xmlapi2/thing?id=${ids.join(',')}&stats=1`,
-      {
-        headers: {
-          'User-Agent': 'RecommendGame/1.0 (eurotetch@gmail.com)'
-        }
-      }
+      { headers }
     );
     const detailsXml = await detailsRes.text();
 
-    // === Parse dettagli con regex ===
     const parseGameDetails = (xml) => {
       const games = [];
       const itemRegex = /<item id="(\d+)"[^>]*>([\s\S]*?)<\/item>/g;
@@ -96,7 +92,13 @@ module.exports = async (req, res) => {
       return games;
     };
 
-    const games = parseGameDetails(detailsXml).filter(g => g.thumbnail);
+    let games = [];
+    try {
+      games = parseGameDetails(detailsXml).filter(g => g.thumbnail);
+    } catch (parseErr) {
+      console.error('Parse error:', parseErr.message);
+      games = [];
+    }
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ games }));
@@ -105,4 +107,4 @@ module.exports = async (req, res) => {
     res.writeHead(500, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: err.message }));
   }
-};    
+};
