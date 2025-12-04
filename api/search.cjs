@@ -24,8 +24,8 @@ module.exports = async (req, res) => {
     let searchXml = '';
     while (attempts < 3) {
       const searchRes = await fetch(
-        `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(q)}&type=boardgame`
-      );
+		  `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(q)}&type=boardgame`
+		);
       console.log('BGG Search status:', searchRes.status);
       if (searchRes.status === 202) {
         await new Promise(r => setTimeout(r, 2000));
