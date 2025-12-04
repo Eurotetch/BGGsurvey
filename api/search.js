@@ -5,12 +5,19 @@ module.exports = async (req, res) => {
     const q = url.searchParams.get('q') || 'boardgame';
     const limit = Math.min(30, parseInt(url.searchParams.get('limit') || '10'));
 
+	// 👇 Usa User-Agent che ha fatto richiesta a Boardgamegeek di poter usare l'API. Vedi: https://boardgamegeek.com/wiki/page/BGG_XML_API2#
+	// Stato della richiesta qui: https://boardgamegeek.com/applications
+    const headers = {
+      'User-Agent': 'RecommendGame/1.0 (eurotetch@gmail.com)'
+    };
+	
     // === 1. Cerca ID su BGG ===
     let attempts = 0;
     let searchXml = '';
     while (attempts < 3) {
       const searchRes = await fetch(
-        `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(q)}&type=boardgame`
+        `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(q)}&type=boardgame`,
+		{ headers }
       );
       if (searchRes.status === 202) {
         await new Promise(r => setTimeout(r, 2000));
