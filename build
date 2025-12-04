@@ -1,0 +1,4 @@
+mkdir .vercel
+echo #!/bin/sh > .vercel/build
+echo npm install >> .vercel/build
+echo npm run build >> .vercel/build

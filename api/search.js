@@ -1,13 +1,9 @@
 // api/search.js
-const { parseStringPromise } = require('xml2js');
-
 module.exports = async (req, res) => {
   try {
     const url = new URL(req.url, `https://${req.headers.host}`);
     const q = url.searchParams.get('q') || 'boardgame';
     const limit = Math.min(30, parseInt(url.searchParams.get('limit') || '10'));
-
-    console.log('🔍 BGG Proxy: searching for:', q);
 
     // === 1. Cerca ID su BGG ===
     let attempts = 0;
@@ -16,7 +12,6 @@ module.exports = async (req, res) => {
       const searchRes = await fetch(
         `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(q)}&type=boardgame`
       );
-      console.log('BGG Search status:', searchRes.status);
       if (searchRes.status === 202) {
         await new Promise(r => setTimeout(r, 2000));
         attempts++;
@@ -30,12 +25,22 @@ module.exports = async (req, res) => {
       throw new Error('No XML from BGG');
     }
 
-    console.log('✅ Got XML, parsing...');
-    const searchJson = await parseStringPromise(searchXml);
-    const items = searchJson?.items?.item || [];
-    const ids = items.slice(0, limit).map(item => item.$.id).filter(Boolean);
+    // === Parse XML con DOMParser nativo (simulato) ===
+    const parseXml = (xml) => {
+      const result = { items: [] };
+      const itemMatches = xml.match(/<item id="(\d+)"[^>]*>/g) || [];
+      for (let match of itemMatches) {
+        const id = match.match(/id="(\d+)"/)?.[1];
+        if (id) result.items.push({ $: { id } });
+      }
+      return result;
+    };
+
+    const searchJson = parseXml(searchXml);
+    const ids = searchJson.items.slice(0, limit).map(item => item.$.id).filter(Boolean);
 
     if (ids.length === 0) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ games: [] }));
     }
 
@@ -44,26 +49,47 @@ module.exports = async (req, res) => {
       `https://boardgamegeek.com/xmlapi2/thing?id=${ids.join(',')}&stats=1`
     );
     const detailsXml = await detailsRes.text();
-    const detailsJson = await parseStringPromise(detailsXml);
-    const gameItems = detailsJson?.items?.item || [];
 
-    const games = gameItems.map(item => {
-      const nameObj = item.name?.find(n => n.$.primary === 'true') || item.name?.[0];
-      const name = nameObj?.$.value || 'Untitled';
-      const thumbnail = item.thumbnail?.[0] || '';
-      const minPlayers = parseInt(item.minplayers?.[0]?.$.value || '1', 10);
-      const maxPlayers = parseInt(item.maxplayers?.[0]?.$.value || '4', 10);
-      const playingTime = parseInt(item.playingtime?.[0]?.$.value || '30', 10);
+    // === Parse dettagli con regex semplice ===
+    const parseGameDetails = (xml) => {
+      const games = [];
+      const itemRegex = /<item id="(\d+)"[^>]*>([\s\S]*?)<\/item>/g;
+      let match;
+      while ((match = itemRegex.exec(xml)) !== null) {
+        const id = match[1];
+        const content = match[2];
 
-      return { id: item.$.id, name, thumbnail, minPlayers, maxPlayers, playingTime };
-    }).filter(g => g.thumbnail);
+        const getName = () => {
+          const primary = content.match(/<name primary="true"[^>]*value="([^"]*)"/);
+          if (primary) return primary[1];
+          const first = content.match(/<name[^>]*value="([^"]*)"/);
+          return first ? first[1] : 'Untitled';
+        };
 
-    res.setHeader('Content-Type', 'application/json');
+        const thumbnail = content.match(/<thumbnail>([^<]*)<\/thumbnail>/)?.[1] || '';
+        const minplayers = content.match(/<minplayers[^>]*value="(\d+)"/)?.[1] || '1';
+        const maxplayers = content.match(/<maxplayers[^>]*value="(\d+)"/)?.[1] || '4';
+        const playingtime = content.match(/<playingtime[^>]*value="(\d+)"/)?.[1] || '30';
+
+        games.push({
+          id,
+          name: getName(),
+          thumbnail,
+          minplayers: parseInt(minplayers, 10),
+          maxplayers: parseInt(maxplayers, 10),
+          playingtime: parseInt(playingtime, 10),
+        });
+      }
+      return games;
+    };
+
+    const games = parseGameDetails(detailsXml).filter(g => g.thumbnail);
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ games }));
   } catch (err) {
-    console.error('💥 BGG Proxy Error:', err.message);
-    res.statusCode = 500;
-    res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({ error: err.message }));
+    console.error('💥 Error:', err.message);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'BGG fetch failed' }));
   }
 };
