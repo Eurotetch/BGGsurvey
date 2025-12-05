@@ -47,7 +47,8 @@ const RecommendGame = () => {
       const url = `/api/search?q=${encodeURIComponent(finalQuery)}&limit=30`;
 
       //const res = await fetch(url); //Usando API XML2 di BGG
-	  const res = await fetch(`/api/search?q=${encodeURIComponent(finalQuery)}&limit=30`); //Usando API GameAtlas
+	  //const res = await fetch(`/api/script?q=${encodeURIComponent(finalQuery)}&limit=30`); //Usando API GameAtlas
+	  const res = await fetch(`/api/search?term=${encodeURIComponent(terms)}&limit=30`); //Usando Recommend.xml
       const data = await res.json();
 
       const allGames = data.games || [];
