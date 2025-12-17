@@ -2,22 +2,26 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-// Configura il client Supabase con i tuoi dati
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+// Configura Supabase con variabili d'ambiente
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Variabili d\'ambiente Supabase non configurate');
+}
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const CATEGORIES = [
-  { id: 'strategy', name: 'Strategy', icon: '♟️', term: 'strategy' },
-  { id: 'card', name: 'Card Game', icon: '🃏', term: 'card' },
-  { id: 'cooperative', name: 'Cooperative', icon: '🤝', term: 'cooperative' },
-  { id: 'party', name: 'Party Game', icon: '🎉', term: 'party' },
-  { id: 'family', name: 'Family', icon: '👨‍👩‍👧‍👦', term: 'family' },
-  { id: 'abstract', name: 'Abstract', icon: '🌀', term: 'abstract' },
+  { id: 'strategy', name: 'Strategia', icon: '♟️', term: 'strategy' },
+  { id: 'card', name: 'Giochi di Carte', icon: '🃏', term: 'card' },
+  { id: 'cooperative', name: 'Cooperativi', icon: '🤝', term: 'cooperative' },
+  { id: 'party', name: 'Giochi di Società', icon: '🎉', term: 'party' },
+  { id: 'family', name: 'Per Famiglie', icon: '👨‍👩‍👧‍👦', term: 'family' },
+  { id: 'abstract', name: 'Astratti', icon: '🌀', term: 'abstract' },
   { id: 'deck', name: 'Deck Building', icon: '📦', term: 'deck' },
   { id: 'fantasy', name: 'Fantasy', icon: '🧙', term: 'fantasy' },
-  { id: 'scifi', name: 'Sci-Fi', icon: '🚀', term: 'scifi' },
+  { id: 'scifi', name: 'Fantascienza', icon: '🚀', term: 'scifi' },
   { id: 'horror', name: 'Horror', icon: '👻', term: 'horror' },
 ];
 
@@ -75,16 +79,14 @@ const RecommendGame = () => {
     setGames([]);
 
     try {
-      // Combina i termini di ricerca
       const terms = selectedTags.map(id => CATEGORIES.find(c => c.id === id)?.term).filter(Boolean).join(' ');
       const finalQuery = terms || 'strategy';
 
-      // Cerca nel database Supabase invece di chiamare API esterne
       const { data, error } = await supabase
         .from('games')
         .select('*')
         .or(`name.ilike.%${finalQuery}%,description.ilike.%${finalQuery}%`)
-        .limit(100); // Recupera più risultati per avere varietà dopo il filtraggio
+        .limit(100);
 
       if (error) throw error;
 
@@ -92,7 +94,6 @@ const RecommendGame = () => {
         throw new Error('Nessun gioco trovato per la tua ricerca');
       }
 
-      // Filtra e mescola i risultati
       const validGames = data.filter(g => g.thumbnail);
       const shuffled = [...validGames].sort(() => 0.5 - Math.random());
       setGames(shuffled.slice(0, 3));
@@ -343,7 +344,7 @@ const RecommendGame = () => {
       <p style={{ fontSize: '0.8rem', color: '#777', marginTop: '24px' }}>
         ℹ️ Dati da <a href="https://boardgamegeek.com" target="_blank" style={{ color: '#FCD34D' }}>BoardGameGeek</a>
         <br />
-        <small style={{ color: '#5A5245' }}>Dati memorizzati localmente nel database Supabase</small>
+        <small style={{ color: '#5A5245' }}>Dati memorizzati nel database Supabase</small>
       </p>
 
       <style>{`

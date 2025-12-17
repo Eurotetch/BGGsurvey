@@ -15,6 +15,7 @@ Dipendenza per leggere xml
 ----------------------------------------------------------------------
 USO DI XML ufficiale di Boardgamegeek:
 
+come:
 Registrare la tua applicazione su:
 👉 https://boardgamegeek.com/developer/api
 Fornire:
@@ -22,21 +23,54 @@ Nome dell’app (es. “RecommendGame”)
 Descrizione (es. “Personal game recommender for private use”)
 Email di contatto
 URL del repo (opzionale, puoi mettere GitHub)
-Ottenere un User-Agent univoco, es:
-1
-📌 Non è una “chiave API”, ma un User-Agent identificativo da inviare in ogni richiesta.
 
-✅ Come usarlo nel tuo proxy su Vercel.
-Nel file api/search.cjs, modifica le chiamate a BGG così:
-"
-const BGG_USER_AGENT = 'RecommendGame/1.0 (tua.email@example.com)';
+dove vedere lista dei token attivi su BGG:
+https://boardgamegeek.com/application/1737/tokens
 
-const searchRes = await fetch(
-  `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(q)}&type=boardgame`,
-  {
-    headers: {
-      'User-Agent': BGG_USER_AGENT
-    }
-  }
-);
-"
+token usato per bgg-scraper:
+bearer: backend-games-nelgrimorio
+token: 8549b8e7-941c-48b5-8327-955b092cdf13
+
+
+----------------------------------------------------------------------
+Dati database Supabase:
+https://supabase.com/dashboard/project/ecqezafpovlwuphrngsd
+
+pj: recommendgame
+pw: nelgrimorio-recommendgame
+
+URL del progetto:
+https://ecqezafpovlwuphrngsd.supabase.co
+
+API:
+nel_grimorio_companion_app
+sb_publishable_aZxoAi5MBpbe9xxF7HauIg_hGQYgaXy
+secret key
+sb_secret_jvN5Of1J2Qd5EMFH0bpCUQ_ofrQu2QD
+service_role_key (anon public)
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjcWV6YWZwb3Zsd3VwaHJuZ3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3Njg3ODEsImV4cCI6MjA4MTM0NDc4MX0.j9axtDJ1KbOEOySQ6yM-iPWOyRc7xBPbrOUgvF3Xd1M
+
+
+
+-----------------------------------------------------------------------
+Funzioni di Supabase per recuperare dati da BGG e salvare nel DB
+
+nome funzione: setup-once-database
+endpoint url: https://ecqezafpovlwuphrngsd.supabase.co/functions/v1/setup-once-database
+info: lanciata solo la primissima volta per popolare il db. In futuro prenderà il suo posto la funzione bgg-scraper
+
+nome funzione: bgg-scraper
+endpoint url: https://ecqezafpovlwuphrngsd.supabase.co/functions/v1/bgg-scraper
+info: viene lanciata dalla funzione bgg-scheduler-cron-job-org per salvare dati da bgg nel db
+
+nome funzione: bgg-scheduler-cron-job-org
+https://ecqezafpovlwuphrngsd.supabase.co/functions/v1/bgg-scheduler-cron-job-org
+info: viene lanciata dallo Scheduler Job di Cron-Job.org
+
+
+----------------------------------------------------------------------
+Scheduler JOB che parte ogni Lunedì alle 12:00 (Carica l'intera lista di giochi da BGG e la salva nel database)
+->
+https://console.cron-job.org/jobs/7017310
+nome job: bgg-scraper-every-monday
+url: https://ecqezafpovlwuphrngsd.supabase.co/functions/v1/bgg-scheduler-cron-job-org
